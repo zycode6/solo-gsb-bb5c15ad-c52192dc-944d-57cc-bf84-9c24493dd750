@@ -1,0 +1,22 @@
+services:
+  font-bench:
+    build: .
+    image: font-coverage-bench:latest
+    container_name: font-coverage-bench
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      DATA_DIR: /data/db
+      UPLOAD_DIR: /data/fonts
+    volumes:
+      - font-bench-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  font-bench-data:

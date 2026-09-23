@@ -1,0 +1,21 @@
+{
+  "name": "font-coverage-bench",
+  "version": "1.0.0",
+  "private": true,
+  "description": "字体覆盖率实验台：基于浏览器真实渲染的缺字 / 回退字体检测、脚本分组、双字体对比与 JSON 报告导出",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "check": "node scripts/smoke.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^4.21.2",
+    "fontkit": "^2.0.4",
+    "multer": "^2.0.1"
+  }
+}

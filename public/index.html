@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>字体覆盖率实验台 · Font Coverage Bench</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">永</span>
+      <div>
+        <h1>字体覆盖率实验台</h1>
+        <p class="sub">Font Coverage Bench · 基于浏览器真实渲染的缺字与回退检测</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-view="coverage" role="tab">覆盖检测</button>
+      <button class="tab" data-view="compare" role="tab">双字体对比</button>
+      <button class="tab" data-view="reports" role="tab">报告库</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= 覆盖检测 ================= -->
+    <section class="view active" id="view-coverage">
+      <div class="grid two">
+        <div class="card">
+          <h2>1 · 选择或上传字体</h2>
+          <div class="upload-row">
+            <label class="file-btn">
+              <input type="file" id="coverage-file" accept=".ttf,.otf,.ttc,.woff,.woff2" hidden />
+              选择字体文件
+            </label>
+            <span class="hint">支持 TTF / OTF / TTC / WOFF / WOFF2（≤30MB）</span>
+          </div>
+          <div class="upload-progress hidden" id="coverage-upload-progress">
+            <div class="bar"><div class="bar-fill" id="coverage-upload-fill"></div></div>
+          </div>
+          <label class="select-label">或从已上传字体选择：
+            <select id="coverage-font-select"><option value="">— 加载中 —</option></select>
+          </label>
+          <div id="coverage-font-info" class="font-info empty">尚未选择字体</div>
+        </div>
+
+        <div class="card">
+          <h2>2 · Unicode 范围</h2>
+          <label class="select-label">快速插入预设：
+            <select id="coverage-preset"><option value="">— 选择预设块 —</option></select>
+          </label>
+          <textarea id="coverage-range" rows="5" spellcheck="false"
+            placeholder="例如：&#10;basic-latin, cjk-unified&#10;U+4E00-U+4FFF&#10;“测试，Hello！”"></textarea>
+          <div class="row-between">
+            <div class="mode-group">
+              <label><input type="radio" name="coverage-mode" value="render" checked /> 真实渲染检测</label>
+              <label><input type="radio" name="coverage-mode" value="cmap" /> 仅 cmap 声明（快）</label>
+            </div>
+            <button class="primary" id="coverage-run">开始检测</button>
+          </div>
+          <div id="coverage-warnings" class="warnings"></div>
+        </div>
+      </div>
+
+      <div class="card progress-card hidden" id="coverage-progress-card">
+        <div class="row-between">
+          <strong id="coverage-progress-text">检测中…</strong>
+          <span id="coverage-progress-pct">0%</span>
+        </div>
+        <div class="bar big"><div class="bar-fill" id="coverage-progress-fill"></div></div>
+      </div>
+
+      <div id="coverage-result" class="hidden"></div>
+    </section>
+
+    <!-- ================= 双字体对比 ================= -->
+    <section class="view" id="view-compare">
+      <div class="grid three">
+        <div class="card">
+          <h2>字体 A（基线）</h2>
+          <label class="select-label"><select id="compare-font-a"><option value="">— 选择字体 —</option></select></label>
+          <div id="compare-info-a" class="font-info compact empty">未选择</div>
+        </div>
+        <div class="card vs-card">
+          <h2>对比设置</h2>
+          <label class="select-label">预设：
+            <select id="compare-preset"><option value="">— 选择预设块 —</option></select>
+          </label>
+          <textarea id="compare-range" rows="4" spellcheck="false" placeholder="同覆盖检测的范围写法"></textarea>
+          <div class="mode-group stacked">
+            <label><input type="radio" name="compare-mode" value="render" checked /> 真实渲染检测</label>
+            <label><input type="radio" name="compare-mode" value="cmap" /> 仅 cmap 声明</label>
+          </div>
+          <button class="primary wide" id="compare-run">开始对比</button>
+        </div>
+        <div class="card">
+          <h2>字体 B（新版本）</h2>
+          <label class="select-label"><select id="compare-font-b"><option value="">— 选择字体 —</option></select></label>
+          <div id="compare-info-b" class="font-info compact empty">未选择</div>
+        </div>
+      </div>
+
+      <div class="card progress-card hidden" id="compare-progress-card">
+        <div class="row-between">
+          <strong id="compare-progress-text">对比中…</strong>
+          <span id="compare-progress-pct">0%</span>
+        </div>
+        <div class="bar big"><div class="bar-fill" id="compare-progress-fill"></div></div>
+      </div>
+
+      <div id="compare-result" class="hidden"></div>
+    </section>
+
+    <!-- ================= 报告库 ================= -->
+    <section class="view" id="view-reports">
+      <div class="card">
+        <div class="row-between">
+          <h2>历史报告</h2>
+          <button id="reports-refresh" class="ghost">刷新</button>
+        </div>
+        <div class="table-wrap">
+          <table id="reports-table">
+            <thead>
+              <tr>
+                <th>#</th><th>类型</th><th>标题</th><th>范围</th><th>模式</th>
+                <th>概要</th><th>创建时间</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody><tr><td colspan="8" class="muted">加载中…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="report-detail" class="hidden"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>检测在你的浏览器内执行 · 字体文件不上传到任何第三方 · 回退结果取决于本机已安装字体</span>
+  </footer>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
