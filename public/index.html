@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>字体覆盖率实验台</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>字体覆盖率实验台 <span class="sub">Font Coverage Bench</span></h1>
+    <p class="tagline">上传字体 → 指定 Unicode 范围 → 浏览器按字形实际渲染检测缺字与回退 → 按脚本分组 → 版本对比 / 导出 JSON</p>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="scan">① 检测</button>
+    <button class="tab" data-tab="results">② 结果分组</button>
+    <button class="tab" data-tab="compare">③ 版本对比</button>
+    <button class="tab" data-tab="history">④ 历史记录</button>
+  </nav>
+
+  <main>
+    <!-- ================= 标签页 1：检测 ================= -->
+    <section id="tab-scan" class="panel active">
+      <div class="grid-two">
+        <div class="card">
+          <h2>1. 上传字体</h2>
+          <form id="upload-form">
+            <label class="file-drop" id="file-drop">
+              <input type="file" id="font-file" accept=".ttf,.otf,.woff,.woff2,.ttc" hidden />
+              <span class="drop-hint">点击选择或拖入 .ttf / .otf / .woff / .woff2 / .ttc</span>
+              <span class="drop-name" id="drop-name"></span>
+            </label>
+            <button type="submit" class="btn primary" id="upload-btn" disabled>上传并解析</button>
+          </form>
+          <div id="upload-notice" class="notice"></div>
+
+          <h3>已上传字体</h3>
+          <div class="font-list" id="font-list">
+            <div class="muted">加载中…</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>2. 选择检测字体</h2>
+          <select id="font-select" size="6"></select>
+          <div id="font-meta" class="font-meta muted">未选择字体</div>
+
+          <h3>渲染参数</h3>
+          <div class="opt-row">
+            <label>检测字号 <input type="number" id="opt-px" value="28" min="10" max="72" /> px</label>
+            <label class="chk"><input type="checkbox" id="opt-cmap" checked /> 与字体 cmap 声明对照（标出“声明有/实测无”）</label>
+          </div>
+          <div class="opt-row">
+            <label class="chk"><input type="checkbox" id="opt-probe-fonts" checked /> 识别回退来自哪个候选字体</label>
+            <button type="button" class="btn small" id="detect-installed">探测系统可用字体</button>
+          </div>
+          <label>
+            候选回退字体（CSS 字体族，按优先级，逗号分隔；用于判定回退来源）
+            <textarea id="fallback-stack" rows="3"></textarea>
+          </label>
+          <div id="installed-hint" class="muted small"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>3. Unicode 范围</h2>
+        <div class="range-presets" id="range-presets"></div>
+        <textarea id="range-input" rows="4" spellcheck="false"
+          placeholder="例如：&#10;U+0020–U+007F, U+4E00–U+4FFF&#10;或脚本名：Latin; CJK; Hiragana; Katakana; Cyrillic&#10;或直接贴入文本逐字检测：你好hello€&#10;或区块名：CJK Unified Ideographs"></textarea>
+        <div class="row-between">
+          <div class="muted small">
+            支持 U+XXXX–U+YYYY 区间、单码点、脚本名（Latin / CJK / Arabic / Emoji…）、区块名、直接贴文本；# 后为注释
+          </div>
+          <div>
+            <button class="btn" id="preview-range">预览范围</button>
+            <button class="btn primary" id="run-scan">开始检测</button>
+          </div>
+        </div>
+        <div id="range-preview" class="range-preview"></div>
+      </div>
+
+      <div class="card hidden" id="scan-progress-card">
+        <h2>检测进度</h2>
+        <div class="progress"><div class="bar" id="progress-bar"></div></div>
+        <div class="row-between">
+          <div id="progress-text" class="muted">准备中…</div>
+          <button class="btn danger small" id="cancel-scan">取消</button>
+        </div>
+        <div class="live-stats" id="live-stats"></div>
+      </div>
+    </section>
+
+    <!-- ================= 标签页 2：结果 ================= -->
+    <section id="tab-results" class="panel">
+      <div class="card">
+        <div class="row-between">
+          <h2 id="results-title">检测结果</h2>
+          <div>
+            <label class="chk"><input type="checkbox" id="show-covered" /> 显示已覆盖字形</label>
+            <button class="btn" id="save-scan" disabled>保存到历史</button>
+            <button class="btn" id="export-json" disabled>导出 JSON</button>
+          </div>
+        </div>
+        <div id="result-summary" class="summary"></div>
+        <div id="result-warnings" class="notice"></div>
+      </div>
+      <div id="script-groups"></div>
+    </section>
+
+    <!-- ================= 标签页 3：对比 ================= -->
+    <section id="tab-compare" class="panel">
+      <div class="card">
+        <h2>两版字体对比</h2>
+        <p class="muted small">选择基于两版字体的两次扫描（范围应一致），对比每个码点的状态变化与回退字体变化。</p>
+        <div class="grid-two">
+          <label>旧版本（before）
+            <select id="compare-a"></select>
+          </label>
+          <label>新版本（after）
+            <select id="compare-b"></select>
+          </label>
+        </div>
+        <button class="btn primary" id="run-compare">执行对比</button>
+        <a class="btn hidden" id="export-compare" download>导出对比 JSON</a>
+      </div>
+      <div id="compare-summary"></div>
+      <div class="grid-two" id="compare-details"></div>
+    </section>
+
+    <!-- ================= 标签页 4：历史 ================= -->
+    <section id="tab-history" class="panel">
+      <div class="card">
+        <h2>扫描历史</h2>
+        <div class="table-wrap">
+          <table id="scan-table">
+            <thead>
+              <tr><th>ID</th><th>标签</th><th>字体</th><th>样本</th><th>覆盖</th><th>回退</th><th>缺失</th><th>时间</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>字体库</h2>
+        <div class="table-wrap">
+          <table id="font-table">
+            <thead>
+              <tr><th>ID</th><th>族名</th><th>版本</th><th>格式</th><th>字形数</th><th>cmap 码点</th><th>大小</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="muted small">
+    检测在浏览器本地 Canvas 中完成：字形指纹（像素/墨框/宽度）+ 回退栈差分，启发式结果以浏览器实际渲染为准。
+  </footer>
+
+  <script src="/shared/unicode-blocks.js"></script>
+  <script src="/shared/range-parser.js"></script>
+  <script src="/detect.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

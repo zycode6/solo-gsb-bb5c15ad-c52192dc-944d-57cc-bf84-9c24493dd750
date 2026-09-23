@@ -1,0 +1,15 @@
+services:
+  font-coverage-bench:
+    build: .
+    image: font-coverage-bench:latest
+    container_name: font-coverage-bench
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      MAX_UPLOAD_MB: "64"
+      MAX_RESULT_ROWS: "120000"
+    volumes:
+      # 持久化 SQLite 数据库与上传的字体文件
+      - ./data:/app/data
+    restart: unless-stopped
